@@ -33,26 +33,33 @@ enum class TYPEMSG
 
 class Clients
 {
-    std::list<int> listClient;
+   std::list<int> listClient;
 public:
-    int genId(){
-        static int value=1000;
+        int genClientId(){
+        int size=3;
+        int beg=1000;
+        static int value=beg;
+
+        if(listClient.size() == size) return 0;
         do
         {
-        if(value == 9999) value =1000;
-        if(value != *find(listClient.begin(),listClient.end(),value)){
-
-            listClient.push_back(value);
-            return value;
-        }
-        value++;
+            if(++value > beg+size) value = beg + 1;
+            if(value != *find(listClient.begin(),listClient.end(),value)){
+                listClient.push_back(value);
+                return value;
+            }
         }while(1);
     }
 
-    int countClient(){return listClient.size();}
+    int countClients(){return listClient.size();}
 
+    void removeClient(int id)
+    {
+        listClient.remove(id);
+    }
 };
 
+Clients client;
 
 void  session(socket_ptr sock, int count)
 {
@@ -70,7 +77,11 @@ void  session(socket_ptr sock, int count)
         memset(data, 0, sizeof(data));
 
         for (;;)
-        {
+        {  if(!sock->is_open()){
+                sock->close();
+                client.removeClient(count);
+                break;
+            }
             sock->read_some(boost::asio::buffer(data), error);
             if (error == boost::asio::error::eof)
                 break; // Connection closed cleanly by peer.
@@ -84,6 +95,10 @@ void  session(socket_ptr sock, int count)
     catch (boost::system::system_error& e)
     {
         std::cerr << "Exception in thread "<<boost::this_thread::get_id()<<": " << e.what() << "\n";
+    }
+    catch (boost::asio::ip::tcp::socket& e)
+    {
+
     }
 }
 
@@ -103,8 +118,11 @@ int main(int argc, char** argv)
         socket_ptr sock(new ip::tcp::socket(service));
         acc.accept(*sock, ec);
         if(!ec){
-            boost::thread( boost::bind(session, sock,boost::ref(count_client)));
-            count_client++;
+            int idClient = client.genClientId();
+            if(idClient)
+                boost::thread( boost::bind(session, sock,boost::ref(idClient)));
+            else
+                cerr <<"ERR: Number of connections exceeded"<< endl;
         }
         else
             cerr <<"ACCEPT ERR: "<<ec.message()<< endl;
