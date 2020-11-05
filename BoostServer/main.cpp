@@ -96,10 +96,6 @@ void  session(socket_ptr sock, int count)
     {
         std::cerr << "Exception in thread "<<boost::this_thread::get_id()<<": " << e.what() << "\n";
     }
-    catch (boost::asio::ip::tcp::socket& e)
-    {
-
-    }
 }
 
 int main(int argc, char** argv)
@@ -111,8 +107,8 @@ int main(int argc, char** argv)
     boost::system::error_code ec;
     ip::tcp::endpoint ep( ip::tcp::v4(), 2009); // listen on 2001
 
-
     ip::tcp::acceptor acc(service, ep);
+
     while (true)
     {
         socket_ptr sock(new ip::tcp::socket(service));
